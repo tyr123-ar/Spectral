@@ -1,11 +1,10 @@
 const { Sequelize, DataTypes } = require("sequelize");
 
 const sequelize = new Sequelize("postgres", "postgres", "mysecretpassword", {
-    host: "127.0.0.1",
+    host: process.env.DB_HOST || "127.0.0.1", // Uses 'db' in Docker
     dialect: "postgres",
     logging: false,
 });
-
 const Submission = sequelize.define("Submission", {
     id: { type: DataTypes.UUID, primaryKey: true },
     code: { type: DataTypes.TEXT, allowNull: false },

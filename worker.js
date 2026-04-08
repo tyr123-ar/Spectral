@@ -1,64 +1,48 @@
 const { Worker } = require("bullmq");
-const { executeCpp } = require("./executeCpp"); 
-const { generateFile } = require("./generateFile"); 
-const { generateInputFile } = require("./generateInputFile"); 
+const { executeCpp } = require("./executeCpp");
+const { generateFile } = require("./generateFile");
+const { generateInputFile } = require("./generateInputFile");
 const fs = require("fs");
 const { Submission } = require("./db");
 
-//Created the Worker. It listens to the "python-codes" queue.
+const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
+
 const worker = new Worker(
     "python-codes",
     async (job) => {
         console.log(`Processing job ${job.id}...`);
-
-        // job.data contains what the producer sent (code, input, submissionId)
         const { code, input, submissionId } = job.data;
         let filepath, inputPath;
 
         try {
-            // Use our existing helper functions to create files
             filepath = await generateFile("cpp", code);
-            
-            if (input) {
-                inputPath = await generateInputFile(input);
-            } else {
-                inputPath = null;
-            }
+            inputPath = input ? await generateInputFile(input) : null;
 
-            //Run the Docker execution logic you already perfected 
-            console.log("Running Docker Sandbox...");
             const output = await executeCpp(filepath, inputPath);
 
-            console.log(`SUCCESS for Job ${job.id}:`, output.trim());
-
-            // Update database with Accepted status
             await Submission.update(
                 { status: "Accepted", output: output.trim() },
                 { where: { id: submissionId } }
             );
 
-            return output.trim(); //This result can be saved to a database later
+            return output.trim();
 
         } catch (err) {
             console.error(`FAILED for Job ${job.id}:`, err.message);
-            // Update database with Error status
             await Submission.update(
                 { status: "Error", error: err.message },
                 { where: { id: submissionId } }
             );
-            throw err; // BullMQ will mark this job as "failed"
+            throw err; 
         } finally {
-            // Cleanup files just like in the test.js
             if (filepath && fs.existsSync(filepath)) fs.unlinkSync(filepath);
             if (inputPath && fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
         }
     },
     {
-        connection: { host: "127.0.0.1", port: 6379 },
-        // This limits the worker to only running 2 jobs at the same time
-        // This prevents our CPU from exploding
+        connection: { host: REDIS_HOST, port: 6379 },
         concurrency: 2,
     }
 );
 
-console.log("Worker is running and waiting for jobs...");
+console.log("Worker is running...");
