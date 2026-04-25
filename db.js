@@ -51,7 +51,11 @@ const PlagiarismCheck = sequelize.define('PlagiarismCheck', {
 });
 
 sequelize.sync({ alter: true }).catch(err => {
-    console.error('[DB] Sync error:', err.message);
+    if (err.original && err.original.code === '42701') {
+        console.log('[DB] Tables already up to date.');
+    } else {
+        console.error('[DB] Sync error:', err.message);
+    }
 });
 
 module.exports = { 
@@ -59,5 +63,5 @@ module.exports = {
     Submission, 
     ASTFingerprint, 
     PlagiarismCheck,
-    ExecutionMetrics   // 🔥 ADD THIS
+    ExecutionMetrics
 };

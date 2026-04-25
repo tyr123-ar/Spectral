@@ -21,9 +21,8 @@ const anticheatQueue = new Queue("anticheat", {
     connection: { host: REDIS_HOST, port: REDIS_PORT }
 });
 
-// 🔥 Normalize output for fair comparison
 function normalize(str) {
-    return String(str).trim().replace(/\s+/g, " ");
+    return String(str).trim().replace(/[ \t]+/g, " ").replace(/\r\n/g, "\n");
 }
 
 const worker = new Worker("python-codes", async (job) => {
@@ -62,7 +61,6 @@ const worker = new Worker("python-codes", async (job) => {
         console.log(`[JOB ${job.id}] Memory: ${memoryUsed.toFixed(2)} MB`);
         console.log(`[JOB ${job.id}] OUTPUT:\n${finalOutput.trim()}`);
 
-        // 🔥 Verdict
         status = "Accepted";
         if (expectedOutput !== undefined) {
             if (normalize(finalOutput) !== normalize(expectedOutput)) {
@@ -87,7 +85,6 @@ const worker = new Worker("python-codes", async (job) => {
         capturedError = err;
     }
 
-    // 🔥 Final Status Update
     console.log(`[JOB ${job.id}] STATUS: ${status}`);
     if (errorMsg && (status === "Compilation Error" || status === "Runtime Error")) {
         console.log(`[JOB ${job.id}] ERROR DETAILS:\n${errorMsg}`);

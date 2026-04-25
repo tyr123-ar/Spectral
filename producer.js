@@ -28,7 +28,7 @@ async function addSubmissionToQueue(language, userCode, userInput, expectedOutpu
         code: userCode,
         input: userInput,
         language: language,
-        expectedOutput: expectedOutput // CRITICAL: This tells the worker which executor to use
+        expectedOutput: expectedOutput
     });
 
     console.log(`Job added! Submission ID: ${submissionId} | Language: ${language}`);
