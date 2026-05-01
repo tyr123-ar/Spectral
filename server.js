@@ -383,7 +383,7 @@ app.post("/login", async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ where: { username } });
     if (user && await bcrypt.compare(password, user.password)) {
-        const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user.id, username: user.username, isAdmin: user.isAdmin }, SECRET, { expiresIn: '1h' });
         res.json({ token });
     } else {
         res.status(401).json({ error: "Invalid credentials" });
@@ -419,7 +419,10 @@ app.post("/submit", authenticateToken, async (req, res) => {
     }
 });
 
-app.post("/admin/problem", async (req, res) => {
+app.post("/admin/problem", authenticateToken, (req, res, next) => {
+    if (!req.user.isAdmin) return res.status(403).json({ error: "Admin access required" });
+    next();
+}, async (req, res) => {
     try {
         const {
             title,
