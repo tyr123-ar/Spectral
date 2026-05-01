@@ -7,7 +7,7 @@ import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-
+import AddProblem from "./pages/AddProblem";
 export default function App() {
   return (
     <BrowserRouter>
@@ -21,6 +21,9 @@ export default function App() {
         
 <Route path="/forgot-password" element={<ForgotPassword />} />
 <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+
+<Route path="/admin/add-problem" element={<AddProblem />} />
       </Routes>
     </BrowserRouter>
   );
