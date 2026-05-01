@@ -94,7 +94,14 @@ app.get("/problems", authenticateToken, async (req, res) => {
 app.get("/problems/:id", authenticateToken, async (req, res) => {
     try {
         const problem = await Problem.findByPk(req.params.id, {
-            include: [Topic]
+            include: [
+                Topic,
+                {
+                    model: TestCase,
+                    where: { isHidden: false },
+                    required: false
+                }
+            ]
         });
 
         if (!problem) {
@@ -120,11 +127,44 @@ app.get("/problems/:id", authenticateToken, async (req, res) => {
             id: problem.id,
             title: problem.title,
             description: problem.description,
+            constraints: problem.constraints,
             difficulty: problem.difficulty,
             topics: problem.Topics?.map(t => t.name) || [],
+            testCases: problem.TestCases?.map(tc => ({
+                input: tc.input,
+                output: tc.expectedOutput
+            })) || [],
             solved: !!solved,
             favourite: !!favourite
         });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/problems/:id/editorial", authenticateToken, async (req, res) => {
+    try {
+        const problem = await Problem.findByPk(req.params.id, {
+            attributes: ["id", "editorialDescription", "editorialSolutions"]
+        });
+        if (!problem) return res.status(404).json({ error: "Problem not found" });
+        res.json(problem);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get("/problems/:id/submissions", authenticateToken, async (req, res) => {
+    try {
+        const submissions = await Submission.findAll({
+            where: {
+                problemId: req.params.id,
+                userId: req.user.id
+            },
+            include: [{ model: ExecutionMetrics, attributes: ["execution_time_ms", "memory_usage_mb"] }],
+            order: [["createdAt", "DESC"]]
+        });
+        res.json(submissions);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -288,8 +328,11 @@ app.get("/status/:id", authenticateToken, async (req, res) => {
         res.json({
             id: submission.id,
             status: submission.status,
+            code: submission.code,
+            language: submission.language,
             output: submission.output,
-            error: submission.error
+            error: submission.error,
+            details: submission.details
         });
     } catch (err) {
         res.status(500).json({ error: "Error fetching status" });

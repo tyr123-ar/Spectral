@@ -119,4 +119,4 @@ services:
         condition: service_started
 
 volumes:
-  pgdata:
+  pgdata:
